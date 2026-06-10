@@ -4,6 +4,7 @@ import cors from 'cors'
 import { auth } from './lib/auth.js';
 import dotenv from 'dotenv'
 import userRouter from "./routes/user.route.js"
+import courseRouter from "./routes/course.route.js"
 
 dotenv.config()
 
@@ -28,6 +29,7 @@ app.use(express.json())
 app.use(express.urlencoded({extended:true}))
 
 app.use("/api/v1/user", userRouter);
+app.use("/api/v1/course", courseRouter);
 
 app.get('/',(req,res) => {
     res.send('cool')

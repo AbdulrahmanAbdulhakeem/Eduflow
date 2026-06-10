@@ -23,14 +23,6 @@ router.route("/admin/users/:id")
 
 
 
-// router.route("/lecturer/students")
-//   .get(requireRole(['LECTURER']), getLecturerStudents);
 
-
-// // ==========================================
-// // 4. STUDENT ONLY SPECIFICATIONS
-// // ==========================================
-// router.route("/student/courses")
-//   .get(requireRole(['STUDENT']), getStudentEnrollments);
 
 export default router

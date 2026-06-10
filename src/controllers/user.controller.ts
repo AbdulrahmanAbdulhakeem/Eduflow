@@ -1,4 +1,3 @@
-import express from "express";
 import { Request, Response,NextFunction } from "express";
 import prisma from "../config/db";
 import { auth } from "../lib/auth";
