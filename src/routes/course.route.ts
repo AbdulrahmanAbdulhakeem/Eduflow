@@ -11,6 +11,7 @@ import {
   getLecturerStudents,
   updateCourse,
 } from "../controllers/course.controller";
+import materialRouter from "./material.route";
 
 const router = Router();
 
@@ -41,5 +42,8 @@ router
   .route("/:id")
   .delete(requireRole(["LECTURER"]), deleteCourse)
   .patch(requireRole(["LECTURER"]), updateCourse);
+
+// This catches /api/v1/course/:courseId/materials and forwards it to the material router
+router.use("/:courseId/materials", materialRouter);
 
 export default router;

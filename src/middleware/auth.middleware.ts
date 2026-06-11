@@ -8,13 +8,10 @@ export async function requireAuth(req:Request,res:Response,next:NextFunction) {
         headers: new Headers(req.headers as Record<string, string>),
     })
 
-    console.log(session)
-
     if (!session) {
     return res.status(401).json({ error: "Unauthorized access" });
   }
 
-  // Attach session context onto the request object for endpoint access
   (req as any).user = session.user;
   (req as any).session = session.session;
 

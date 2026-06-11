@@ -3,8 +3,8 @@ import express from 'express'
 import cors from 'cors'
 import { auth } from './lib/auth.js';
 import dotenv from 'dotenv'
-import userRouter from "./routes/user.route.js"
-import courseRouter from "./routes/course.route.js"
+import userRouter from "./routes/user.route"
+import courseRouter from "./routes/course.route"
 
 dotenv.config()
 
