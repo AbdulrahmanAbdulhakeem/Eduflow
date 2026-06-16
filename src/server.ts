@@ -1,42 +1,45 @@
-import { toNodeHandler } from 'better-auth/node';
-import express from 'express'
-import cors from 'cors'
-import { auth } from './lib/auth.js';
-import dotenv from 'dotenv'
-import userRouter from "./routes/user.route"
-import courseRouter from "./routes/course.route"
+import { createServer } from "http";
+import { toNodeHandler } from "better-auth/node";
+import express from "express";
+import cors from "cors";
+import { auth } from "./lib/auth";
+import dotenv from "dotenv";
+import userRouter from "./routes/user.route";
+import courseRouter from "./routes/course.route";
+import { initSocket } from "./lib/socket";
 
-dotenv.config()
+dotenv.config();
 
-const app = express()
+const app = express();
 const PORT = 3000;
 
 if (!process.env.FRONTEND_URL) throw Error("Frontend URL is missing");
 
+const httpServer = createServer(app);
 
 // Configure CORS middleware
 app.use(
   cors({
-    origin:"http://localhost:3000", // Replace with your frontend's origin
-    methods: ["GET", "POST", "PUT", "DELETE"], // Specify allowed HTTP methods
+    origin: "http://localhost:3000", // Replace with your frontend's origin
+    methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true, // Allow credentials (cookies, authorization headers, etc.)
-  })
+  }),
 );
 
-app.all('/api/auth/*any', toNodeHandler(auth));
+app.all("/api/auth/*any", toNodeHandler(auth));
 
-app.use(express.json())
-app.use(express.urlencoded({extended:true}))
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/course", courseRouter);
 
-app.get('/',(req,res) => {
-    res.send('cool')
-})
+app.get("/", (req, res) => {
+  res.send("cool");
+});
 
-app.listen(PORT,() => {
-    console.log(`Listening on port ${PORT}`)
-})
+initSocket(httpServer)
 
-
+httpServer.listen(PORT, () => {
+  console.log(`Listening on port ${PORT}`);
+});

@@ -1,7 +1,7 @@
 import multer from "multer";
 import { Request } from "express";
 
-const storage = multer.diskStorage({}); 
+const storage = multer.memoryStorage(); 
 
 //The critical file validation filter
 const pdfFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {

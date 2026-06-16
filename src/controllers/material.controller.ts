@@ -77,6 +77,7 @@ export const uploadMaterial = async (req: Request, res: Response, next: NextFunc
       data: material,
     });
   } catch (error) {
+    console.error("UPLOAD ERROR DETAILS:", error);
     next(error);
   }
 };
