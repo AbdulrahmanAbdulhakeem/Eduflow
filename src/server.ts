@@ -6,6 +6,7 @@ import { auth } from "./lib/auth";
 import dotenv from "dotenv";
 import userRouter from "./routes/user.route";
 import courseRouter from "./routes/course.route";
+import aiRouter from "./routes/ai.route";
 import { initSocket } from "./lib/socket";
 
 dotenv.config();
@@ -33,6 +34,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/course", courseRouter);
+app.use("/api/v1/ai/chat", aiRouter);
 
 app.get("/", (req, res) => {
   res.send("cool");

@@ -22,7 +22,7 @@ export function initSocket(httpServer: HttpServer) {
   });
 
   io.on('connection', (socket: Socket) => {
-    console.log(`🔌 Client connected to WebSocket: ${socket.id}`);
+    console.log(`Client connected to WebSocket: ${socket.id}`);
 
     // Event 1: Student enters a course room
     socket.on('presence:initialize', (data: { studentId: string; name: string; email: string; courseId: string }) => {
