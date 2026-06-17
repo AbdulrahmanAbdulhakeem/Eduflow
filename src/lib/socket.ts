@@ -73,7 +73,7 @@ export function initSocket(httpServer: HttpServer) {
           studentId: data.studentId,
           name: data.name,
           email: data.email,
-          courseId: data.courseId, // ✅ Fixed: Crucial key for filtering
+          courseId: data.courseId,
           currentMaterialId: null,
           materialTitle: null,
           currentAction: "Browsing Course Page",
@@ -96,7 +96,7 @@ export function initSocket(httpServer: HttpServer) {
       }) => {
         const session = activeSessions.get(socket.id);
         if (session) {
-          session.courseId = data.courseId; // ✅ Keep synched
+          session.courseId = data.courseId; 
           session.currentMaterialId = data.materialId;
           session.materialTitle = data.materialTitle;
           session.currentAction = "Viewing Document";
@@ -114,7 +114,7 @@ export function initSocket(httpServer: HttpServer) {
       (data: { courseId: string; action: string }) => {
         const session = activeSessions.get(socket.id);
         if (session) {
-          session.courseId = data.courseId; // ✅ Keep synched
+          session.courseId = data.courseId; 
           session.currentAction = data.action;
           session.lastActive = new Date();
 
@@ -150,11 +150,11 @@ export function initSocket(httpServer: HttpServer) {
       const courseId = typeof data === "string" ? data : data.courseId;
 
       if (!courseId) {
-        console.error("🚨 lecturer:join triggered without a valid courseId");
+        console.error("lecturer:join triggered without a valid courseId");
         return;
       }
       socket.join(`course:${courseId}:lecturers`);
-      console.log(`👨‍🏫 Lecturer joined monitoring channel for: ${courseId}`);
+      console.log(`Lecturer joined monitoring channel for: ${courseId}`);
 
       broadcastToLecturersOnly(io, courseId);
     });
@@ -168,7 +168,6 @@ function broadcastToLecturersOnly(io: Server, courseId: string) {
 
   activeSessions.forEach((session) => {
     if (session.courseId === courseId) {
-      // ✅ This works perfectly now!
       liveStudents.push(session);
     }
   });
