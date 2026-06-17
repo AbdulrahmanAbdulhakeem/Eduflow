@@ -1,15 +1,18 @@
-import { Server as HttpServer } from 'http';
-import { Server, Socket } from 'socket.io';
+import { Server as HttpServer } from "http";
+import { Server, Socket } from "socket.io";
 
 interface ActiveStudent {
   studentId: string;
   name: string;
   email: string;
+  courseId: string;
   currentMaterialId: string | null;
+  materialTitle: string | null;
+  currentAction: string;
+  joinedAt: Date;
   lastActive: Date;
 }
 
-// In-memory state tracking store (Map key is the unique Socket ID)
 const activeSessions = new Map<string, ActiveStudent>();
 
 export function initSocket(httpServer: HttpServer) {
@@ -17,84 +20,161 @@ export function initSocket(httpServer: HttpServer) {
     cors: {
       origin: "http://localhost:3000",
       methods: ["GET", "POST"],
-      credentials: true
-    }
+      credentials: true,
+    },
   });
 
-  io.on('connection', (socket: Socket) => {
-    console.log(`Client connected to WebSocket: ${socket.id}`);
+  io.on("connection", (socket: Socket) => {
+    console.log(`Connected: ${socket.id}`);
 
-    // Event 1: Student enters a course room
-    socket.on('presence:initialize', (data: { studentId: string; name: string; email: string; courseId: string }) => {
-      const roomName = `course:${data.courseId}`;
-      socket.join(roomName);
+    // Real-Time Enrollment Notifications
+    socket.on(
+      "presence:enrollincourse",
+      (data: {
+        studentId: string;
+        name: string;
+        email: string;
+        courseId: string;
+      }) => {
+        console.log(
+          `Student ${data.name} enrolled in course: ${data.courseId}`,
+        );
 
-      activeSessions.set(socket.id, {
-        studentId: data.studentId,
-        name: data.name,
-        email: data.email,
-        currentMaterialId: null,
-        lastActive: new Date()
-      });
+        const notificationPayload = {
+          message: `${data.name} has just enrolled in your course!`,
+          student: {
+            id: data.studentId,
+            name: data.name,
+            email: data.email,
+          },
+          enrolledAt: new Date(),
+        };
 
-      // Instantly tell listening lecturers who is in this room
-      broadcastCoursePresence(io, data.courseId);
-    });
+        //Secure Fix: Send directly to the lecturers sub-room
+        io.to(`course:${data.courseId}:lecturers`).emit(
+          "lecturer:enrollment_notification",
+          notificationPayload,
+        );
+      },
+    );
 
-    // Event 2: Student switches materials or opens a PDF
-    socket.on('presence:update_material', (data: { courseId: string; materialId: string }) => {
-      const session = activeSessions.get(socket.id);
-      if (session) {
-        session.currentMaterialId = data.materialId;
-        session.lastActive = new Date();
-        activeSessions.set(socket.id, session);
+    // Student Enters the Course Page
+    socket.on(
+      "presence:initialize",
+      (data: {
+        studentId: string;
+        name: string;
+        email: string;
+        courseId: string;
+      }) => {
+        socket.join(`course:${data.courseId}`);
 
-        broadcastCoursePresence(io, data.courseId);
-      }
-    });
+        activeSessions.set(socket.id, {
+          studentId: data.studentId,
+          name: data.name,
+          email: data.email,
+          courseId: data.courseId, // ✅ Fixed: Crucial key for filtering
+          currentMaterialId: null,
+          materialTitle: null,
+          currentAction: "Browsing Course Page",
+          joinedAt: new Date(),
+          lastActive: new Date(),
+        });
 
-    // Event 3: Clean up when a user closes a tab or disconnects
-    socket.on('disconnecting', () => {
+        socket.data = { courseId: data.courseId };
+        broadcastToLecturersOnly(io, data.courseId);
+      },
+    );
+
+    // Student Opens or Switches Material
+    socket.on(
+      "presence:update_material",
+      (data: {
+        courseId: string;
+        materialId: string;
+        materialTitle: string;
+      }) => {
+        const session = activeSessions.get(socket.id);
+        if (session) {
+          session.courseId = data.courseId; // ✅ Keep synched
+          session.currentMaterialId = data.materialId;
+          session.materialTitle = data.materialTitle;
+          session.currentAction = "Viewing Document";
+          session.lastActive = new Date();
+
+          activeSessions.set(socket.id, session);
+          broadcastToLecturersOnly(io, data.courseId);
+        }
+      },
+    );
+
+    // Student Updates Active Task Actions
+    socket.on(
+      "presence:update_action",
+      (data: { courseId: string; action: string }) => {
+        const session = activeSessions.get(socket.id);
+        if (session) {
+          session.courseId = data.courseId; // ✅ Keep synched
+          session.currentAction = data.action;
+          session.lastActive = new Date();
+
+          activeSessions.set(socket.id, session);
+          broadcastToLecturersOnly(io, data.courseId);
+        }
+      },
+    );
+
+    // Disconnect Layer Clean-up
+    socket.on("disconnecting", () => {
       const session = activeSessions.get(socket.id);
       if (session) {
         socket.rooms.forEach((room) => {
-          if (room.startsWith('course:')) {
-            const courseId = room.split(':')[1];
-            
-            // Broadcast the updated, smaller list right after their removal processes finishes
+          if (room.startsWith("course:")) {
+            const courseId = room.split(":")[1];
+
             process.nextTick(() => {
-              broadcastCoursePresence(io, courseId);
+              broadcastToLecturersOnly(io, courseId);
             });
           }
         });
       }
     });
 
-    socket.on('disconnect', () => {
+    socket.on("disconnect", () => {
       activeSessions.delete(socket.id);
-      console.log(`❌ Client disconnected: ${socket.id}`);
+      console.log(`❌ Disconnected: ${socket.id}`);
+    });
+
+    // Lecturer Registers Dashboard Screen Listener
+    socket.on("lecturer:join", (data: string | { courseId: string }) => {
+      const courseId = typeof data === "string" ? data : data.courseId;
+
+      if (!courseId) {
+        console.error("🚨 lecturer:join triggered without a valid courseId");
+        return;
+      }
+      socket.join(`course:${courseId}:lecturers`);
+      console.log(`👨‍🏫 Lecturer joined monitoring channel for: ${courseId}`);
+
+      broadcastToLecturersOnly(io, courseId);
     });
   });
 
   return io;
 }
 
-// Helper utility to compile and broadcast active sessions belonging to a specific course
-function broadcastCoursePresence(io: Server, courseId: string) {
-  const roomName = `course:${courseId}`;
-  const clientsInRoom = io.sockets.adapter.rooms.get(roomName);
+function broadcastToLecturersOnly(io: Server, courseId: string) {
   const liveStudents: ActiveStudent[] = [];
 
-  if (clientsInRoom) {
-    clientsInRoom.forEach((socketId) => {
-      const session = activeSessions.get(socketId);
-      if (session) {
-        liveStudents.push(session);
-      }
-    });
-  }
+  activeSessions.forEach((session) => {
+    if (session.courseId === courseId) {
+      // ✅ This works perfectly now!
+      liveStudents.push(session);
+    }
+  });
 
-  // Push the snapshot directly to the course channel
-  io.to(roomName).emit('presence:live_data', liveStudents);
+  io.to(`course:${courseId}:lecturers`).emit(
+    "presence:live_data",
+    liveStudents,
+  );
 }
-
