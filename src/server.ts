@@ -12,16 +12,18 @@ import { initSocket } from "./lib/socket";
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-if (!process.env.FRONTEND_URL) throw Error("Frontend URL is missing");
+export const FRONTEND_URL = process.env.FRONTEND_URL;
+
+if (!FRONTEND_URL) throw Error("Frontend URL is missing");
 
 const httpServer = createServer(app);
 
 // Configure CORS middleware
 app.use(
   cors({
-    origin: "http://localhost:3000", // Replace with your frontend's origin
+    origin: FRONTEND_URL, 
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true, // Allow credentials (cookies, authorization headers, etc.)
   }),

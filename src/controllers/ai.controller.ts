@@ -1,7 +1,5 @@
-// src/controllers/ai.controller.ts
 import { Request, Response } from 'express';
 import { GoogleGenAI } from '@google/genai';
-import prisma from '../config/db';
 
 
 const ai = new GoogleGenAI({});

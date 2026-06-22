@@ -1,5 +1,6 @@
 import { Server as HttpServer } from "http";
 import { Server, Socket } from "socket.io";
+import { FRONTEND_URL } from "../server";
 
 interface ActiveStudent {
   studentId: string;
@@ -18,7 +19,7 @@ const activeSessions = new Map<string, ActiveStudent>();
 export function initSocket(httpServer: HttpServer) {
   const io = new Server(httpServer, {
     cors: {
-      origin: "http://localhost:3000",
+      origin: FRONTEND_URL,
       methods: ["GET", "POST"],
       credentials: true,
     },
@@ -142,7 +143,7 @@ export function initSocket(httpServer: HttpServer) {
 
     socket.on("disconnect", () => {
       activeSessions.delete(socket.id);
-      console.log(`❌ Disconnected: ${socket.id}`);
+      console.log(`Disconnected: ${socket.id}`);
     });
 
     // Lecturer Registers Dashboard Screen Listener
